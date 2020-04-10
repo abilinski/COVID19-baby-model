@@ -1,0 +1,12 @@
+name: SC_Shiny
+title: SC_Shiny
+username:
+account: alyssab
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2064256
+bundleId: 2995515
+url: https://alyssab.shinyapps.io/SC_Shiny/
+when: 1586504588.27229
+asMultiple: FALSE
+asStatic: FALSE
