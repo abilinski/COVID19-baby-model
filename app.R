@@ -2,9 +2,11 @@
 source("functions.R")
 library(shinythemes)
 library(shinyjs)
+library(shinymanager)
 library(DT)
 
 ####################
+
 
 server <- function(input, output, session) {
   
@@ -15,48 +17,50 @@ server <- function(input, output, session) {
              "I_c", "H_cu", "H_cd", "C_cu", "C_cd", "R_cu",
              "R_cd", "contact_mod_1", "contact_mod_2", "t",
              "lambda", "pmbase", "pmint1", "pmint2", "v", "f_c",
-             "f_s", "gamma", "p_s", "p_c", "delta_s", "delta_c", "epsilon_c", "alpha")
+             "f_s", "gamma", "p_s", "p_c", "delta_s", "delta_c", "epsilon_c", "alpha", "per2", "per3")
     for(i in 1:length(vars)) reset(vars[i])
     })
   
   # local save
   observeEvent(input$save | input$save2, {
-
-    # Define inputs to save
-    inputs_to_save <- c("contact_mod_1", "contact_mod_2", "t",
-                        "lambda", "pmbase", "pmint1", "pmint2", "v", "f_c", "alpha",
-                        "f_s", "gamma", "p_s", "p_c", "delta_s", "delta_c", "epsilon_c",
-                        "N", "E", "I_m", "R_mu", "R_md",
-                        "I_s", "H_su", "H_sd", "R_su", "R_sd",
-                        "I_c", "H_cu", "H_cd", "C_cu", "C_cd", "R_cu",
-                        "R_cd")
     
-    # Declare inputs
-    inputs <- NULL
-    # Append all inputs before saving to folder
-    for(input.i in inputs_to_save){
-      inputs <- append(inputs, input[[input.i]])
-    }
-    # Inputs data.frame
-    inputs_data_frame <- data.frame(inputId = inputs_to_save, value = inputs)
-    # Save Inputs
-    write.csv(inputs_data_frame, file = paste0(tempdir(), "/temp.csv"), row.names = FALSE)
-    
+      # Define inputs to save
+      inputs_to_save <- c("contact_mod_1", "contact_mod_2", "t",
+                          "lambda", "pmbase", "pmint1", "pmint2", "v", "f_c", "alpha",
+                          "f_s", "gamma", "p_s", "p_c", "delta_s", "delta_c",
+                          "epsilon_c", "per2", "per3",
+                          "N", "E", "I_m", "R_mu", "R_md", 
+                          "I_s", "H_su", "H_sd", "R_su", "R_sd",
+                          "I_c", "H_cu", "H_cd", "C_cu", "C_cd", "R_cu",
+                          "R_cd")
+      if(!is.null(input[["N"]])){
+      # Declare inputs
+      inputs <- NULL
+      # Append all inputs before saving to folder
+      for(input.i in inputs_to_save){
+        inputs <- append(inputs, input[[input.i]])
+      }
+      # Inputs data.frame
+      inputs_data_frame <- data.frame(inputId = inputs_to_save, value = inputs)
+      # Save Inputs
+      write.csv(inputs_data_frame, file = paste0(tempdir(), "/temp.csv"), row.names = FALSE)
+      }
+      
   })
   
   # calibration data 
   data = reactive({
     inFile = input$file1
     if (is.null(inFile)) {
-      return(read.csv("SC_data.csv"))
-    } else{ return(read.csv(inFile$datapath) %>% rename(time = 1, cum_cases = 2, hosp_onging = 3, hosp_new = 4))}
+      return(read.csv("calib.csv"))
+    } else{ return(read.csv(inFile$datapath) %>% rename(time = 1, cum_cases = 2, hosp_ongoing = 3, hosp_new = 4))}
      })
   
   # input data
   data_input = reactive({
     inFile = input$file2
     if (is.null(inFile)) {
-      return(NULL)
+      return(read.csv("inputs.csv"))
     } else{ return(read.csv(inFile$datapath))}
   })
   
@@ -90,7 +94,7 @@ server <- function(input, output, session) {
         uploaded_inputs <- read.csv(inFile$datapath)
       # Update each input
       for(i in 1:nrow(uploaded_inputs)){
-        if(i < 18) { 
+        if(i < 20) { 
           updateSliderInput(session,
                             inputId = uploaded_inputs$inputId[i],
                             value = uploaded_inputs$value[i])
@@ -110,7 +114,7 @@ server <- function(input, output, session) {
     process_params(N = input$N, E = input$E, I_m = input$I_m, R_mu = input$R_mu, R_md = input$R_md, 
                    I_s = input$I_s, H_su = input$H_su, H_sd = input$H_sd, R_su = input$R_su, R_sd = input$R_sd,
                    I_c = input$I_c, H_cu = input$H_cu, H_cd = input$H_cd, C_cu = input$C_cu, C_cd = input$C_cd, R_cu = input$R_cu,
-                   R_cd =input$R_cd,
+                   R_cd =input$R_cd, per2 = input$per2, per3 = input$per3,
                    contact_mod_1 = input$contact_mod_1, contact_mod_2 = input$contact_mod_2, 
                               t = input$t, alpha = input$alpha,
                               lambda = input$lambda,
@@ -185,7 +189,7 @@ server <- function(input, output, session) {
 
 ui <- fluidPage(theme=shinytheme("simplex"),
                 useShinyjs(),
-                titlePanel("Santa Clara County COVID-19 Model"),
+                titlePanel("Simple COVID-19 Model"),
                 sidebarLayout(
                   sidebarPanel(
                     tabsetPanel(
@@ -194,17 +198,19 @@ ui <- fluidPage(theme=shinytheme("simplex"),
                                
                                h4("Social distancing:"),
                                
-                               sliderInput("t", "Time Horizon (days)",     min=32, max=70, value=50),
-                               sliderInput("contact_mod_1", "Proportion of usual contacts (March 17-31)", min=0, max=1, value=.4),
-                               sliderInput("contact_mod_2", "Proportion of usual contacts (April 1 onward)", min=0, max=1, value=.2),
+                               sliderInput("t", "Time Horizon (days)",     min=32, max=180, value=50),
+                               sliderInput("per2", "Period 2 start day",     min=1, max=180, value=20),
+                               sliderInput("contact_mod_1", "Proportion of usual contacts (Period 2)", min=0, max=1, value=.4),
+                               sliderInput("per3", "Period 3 start day",     min=1, max=180, value=40),
+                               sliderInput("contact_mod_2", "Proportion of usual contacts (Period 3)", min=0, max=1, value=.2),
                                
                                h4("Testing:"),
-                               sliderInput("pmbase", "Detection probability (Feb 29)", min=0, max=1, value=.1),
-                               sliderInput("pmint1", "Detection probability (March 17)", min=0, max=1, value=.2),
-                               sliderInput("pmint2", "Detection probability (April 1)", min=0, max=1, value=.3),
+                               sliderInput("pmbase", "Detection probability (Period 1)", min=0, max=1, value=.05),
+                               sliderInput("pmint1", "Detection probability (Period 2)", min=0, max=1, value=.1),
+                               sliderInput("pmint2", "Detection probability (Period 3)", min=0, max=1, value=.2),
                                
                                h4("Transmission:"),
-                               sliderInput("lambda", HTML("&beta;"), min=.4, max=1.4, value=.75),
+                               sliderInput("lambda", HTML("&beta;"), min=.4, max=1.4, value=.8),
                                actionButton("save", "Save inputs"),
                                actionButton("restore_saved", "Restore saved inputs"),
                                h4(""),
@@ -238,7 +244,7 @@ ui <- fluidPage(theme=shinytheme("simplex"),
                       ),
                       
                       tabPanel("Initial conditions", fluid=TRUE,
-                        numericInput("N", "N", 1938000, min = NA, max = NA, step = NA, width = NULL),
+                        numericInput("N", "N", 1000000, min = NA, max = NA, step = NA, width = NULL),
                         numericInput("E", "E", 100, min = NA, max = NA, step = NA, width = NULL),
                         numericInput("I_m", HTML("I<sub>m</sub>"), 40, min = NA, max = NA, step = NA, width = NULL),
                         numericInput("R_md", HTML("R<sub>md</sub>"), 4, min = NA, max = NA, step = NA, width = NULL),

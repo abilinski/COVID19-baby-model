@@ -98,6 +98,7 @@ run_model = function(t, N,
 process_params = function(N = 1938000, E = 24, I_m =4, R_mu = 0, R_md = 4, 
                           I_s = 0, H_su = 0, H_sd = 0, R_su = 0, R_sd = 0,
                           I_c = 0, H_cu = 0, H_cd = 0, C_cu = 0, C_cd = 0, R_cu = 0, R_cd =0,
+                          per2, per3,
                           contact_mod_1 = .8, contact_mod_2 = .4, alpha = 1,
                           t = 50, 
                           lambda = .85,
@@ -112,10 +113,10 @@ process_params = function(N = 1938000, E = 24, I_m =4, R_mu = 0, R_md = 4,
   S = N-E-I_m-R_md  
 
   # set initial conditions
-  p_m = c(seq(pmbase, pmint1, length.out = 17), seq(pmint1, pmint2, length.out = 15), rep(pmint2, t-32)) 
+  p_m = c(seq(pmbase, pmint1, length.out = per2-1), seq(pmint1, pmint2, length.out = per3-per2), rep(pmint2, t-per3+1)) 
 
   # lambda with and without intervention
-  lambda_int = c(rep(lambda, 17), rep(lambda*contact_mod_1, 15), rep(lambda*contact_mod_2, t-32))
+  lambda_int = c(rep(lambda, per2-1), rep(lambda*contact_mod_1, per3-per2), rep(lambda*contact_mod_2, t-per3+1))
   lambda = rep(lambda, t)
 
   # collapse these more nicely but they're fine for now
@@ -186,6 +187,17 @@ calib_plots = function(out, data){
   # read in and label datat
   # bind with data frame
   # label according to relevant time periods
+  if(is.null(data)){
+    ts = out %>% filter(int == "Social distancing") %>% mutate(hosp_new = c(NA, diff(H_cum))) %>% 
+                  rename(cum_cases = I_cum_det, hosp_ongoing = H) %>% 
+                  select(time, cum_cases, hosp_ongoing, hosp_new) %>% mutate(id = "Predicted") %>%
+                  gather(var, value, cum_cases, hosp_ongoing, hosp_new) %>%
+      mutate(split = ifelse(time >= 18, "March 17-March 31", "Feb 29-March 16"),
+             split = ifelse(time >= 33, "April 1 onward", split),
+             split = factor(split, levels = c("Feb 29-March 16", "March 17-March 31", "April 1 onward"))) %>% 
+      mutate(var2 = ifelse(var == "cum_cases", "Cumulative detected cases", "Current hospitalizations"),
+             var2 = ifelse(var=="hosp_new", "New admissions", var2))
+  } else{
   ts = data %>% gather(var, value, cum_cases, hosp_ongoing, hosp_new) %>% mutate(id = "Observed") %>% 
     bind_rows(out %>% filter(int == "Social distancing") %>% mutate(hosp_new = c(NA, diff(H_cum))) %>% 
                 rename(cum_cases = I_cum_det, hosp_ongoing = H) %>% 
@@ -196,6 +208,7 @@ calib_plots = function(out, data){
            split = factor(split, levels = c("Feb 29-March 16", "March 17-March 31", "April 1 onward"))) %>% 
     mutate(var2 = ifelse(var == "cum_cases", "Cumulative detected cases", "Current hospitalizations"),
            var2 = ifelse(var=="hosp_new", "New admissions", var2))
+  }
   
   # make plot
   a = ggplot(ts, aes(x = time, y = value, group = id, col = id)) + geom_point() + geom_line() + 

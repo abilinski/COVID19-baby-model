@@ -1,0 +1,12 @@
+name: COVID19-simple-model
+title: COVID19-simple-model
+username:
+account: alyssab
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 2106568
+bundleId: 3005480
+url: https://alyssab.shinyapps.io/COVID19-simple-model/
+when: 1586756189.09201
+asMultiple: FALSE
+asStatic: FALSE
