@@ -1,8 +1,6 @@
-#setwd("~/Dropbox/Santa Clara Shiny")
 source("functions.R")
 library(shinythemes)
 library(shinyjs)
-library(shinymanager)
 library(DT)
 
 ####################
